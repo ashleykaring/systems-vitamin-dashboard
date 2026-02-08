@@ -24,18 +24,25 @@ const timeRanges = [
   { key: "all", label: "all", days: null },
 ] as const;
 
-const formatDate = (value: string) =>
+const formatDate = (value: string | number) =>
   new Date(value).toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",
   });
 
-const formatMonth = (value: string) =>
+const formatMonth = (value: string | number) =>
   new Date(value).toLocaleDateString("en-US", {
     month: "short",
     year: "2-digit",
   });
+
+const formatLabel = (value: unknown) => {
+  if (typeof value === "string" || typeof value === "number") {
+    return formatDate(value);
+  }
+  return "";
+};
 
 const getStatus = (key: VitaminKey, value: number) => {
   const { low, high } = vitaminMeta[key];
@@ -264,7 +271,7 @@ export default function App() {
                   <YAxis tick={{ fill: "#dbe0ff" }} domain={["auto", "auto"]} />
                   <Tooltip
                     formatter={(value) => `${value} ${overviewMetricMeta.unit}`}
-                    labelFormatter={formatDate}
+                    labelFormatter={formatLabel}
                   />
                   <Line
                     type="monotone"
@@ -397,7 +404,7 @@ export default function App() {
                       tick={{ fill: "#dbe0ff" }}
                       domain={["auto", "auto"]}
                     />
-                    <Tooltip labelFormatter={formatDate} />
+                    <Tooltip labelFormatter={formatLabel} />
                     <Legend />
                     {selectedMetrics.includes("vitaminD") && (
                       <Line

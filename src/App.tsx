@@ -79,9 +79,7 @@ const buildCsv = (rows: Reading[]) => {
       row.notes ?? "",
     ].map(csvEscape),
   );
-  return [headers.map(csvEscape), ...lines]
-    .map((line) => line.join(","))
-    .join("\n");
+  return [headers.map(csvEscape), ...lines].map((line) => line.join(",")).join("\n");
 };
 
 const downloadCsv = (filename: string, rows: Reading[]) => {
@@ -118,8 +116,7 @@ const sortRows = (
 export default function App() {
   const [section, setSection] = useState<Section>("overview");
   const [overviewMetric, setOverviewMetric] = useState<VitaminKey>("vitaminD");
-  const [rangeKey, setRangeKey] =
-    useState<(typeof timeRanges)[number]["key"]>("6m");
+  const [rangeKey, setRangeKey] = useState<(typeof timeRanges)[number]["key"]>("6m");
   const [selectedMetrics, setSelectedMetrics] = useState<VitaminKey[]>([
     "vitaminD",
     "calcium",
@@ -177,274 +174,101 @@ export default function App() {
   };
 
   return (
-    <div className="app">
-      <header className="app-header">
-        <div>
-          <h1>Vitamin Levels Dashboard</h1>
-          <p className="subhead">
-            Mock data demo of vitamin monitoring and insights.
-          </p>
-        </div>
-        <nav className="nav-tabs">
-          <button
-            className={section === "overview" ? "active" : ""}
-            onClick={() => setSection("overview")}
-          >
-            Overview
-          </button>
-          <button
-            className={section === "history" ? "active" : ""}
-            onClick={() => setSection("history")}
-          >
-            History
-          </button>
-          <button
-            className={section === "resources" ? "active" : ""}
-            onClick={() => setSection("resources")}
-          >
-            Resources
-          </button>
-        </nav>
-      </header>
+    <div className="phone-frame">
+      <div className="app">
+        <header className="app-header">
+          <div>
+            <h1>Vitamin Levels Dashboard</h1>
+            <p className="subhead">Mock data demo of vitamin monitoring and insights.</p>
+          </div>
+          <nav className="nav-tabs">
+            <button
+              className={section === "overview" ? "active" : ""}
+              onClick={() => setSection("overview")}
+            >
+              Overview
+            </button>
+            <button
+              className={section === "history" ? "active" : ""}
+              onClick={() => setSection("history")}
+            >
+              History
+            </button>
+            <button
+              className={section === "resources" ? "active" : ""}
+              onClick={() => setSection("resources")}
+            >
+              Resources
+            </button>
+          </nav>
+        </header>
 
-      {section === "overview" && (
-        <section className="section">
-          <div className="card-grid">
-            {metricTabs.map((key) => {
-              const meta = vitaminMeta[key];
-              const value = latest[key];
-              const delta = value - previous[key];
-              const status = getStatus(key, value);
-              return (
-                <div className="stat-card" key={key}>
-                  <div className="stat-header">
-                    <p>{meta.label}</p>
-                    <span
-                      className={`badge badge-${status.replace(" ", "").toLowerCase()}`}
-                    >
-                      {status}
-                    </span>
+        {section === "overview" && (
+          <section className="section">
+            <div className="card-grid">
+              {metricTabs.map((key) => {
+                const meta = vitaminMeta[key];
+                const value = latest[key];
+                const delta = value - previous[key];
+                const status = getStatus(key, value);
+                return (
+                  <div className="stat-card" key={key}>
+                    <div className="stat-header">
+                      <p>{meta.label}</p>
+                      <span className={`badge badge-${status.replace(" ", "").toLowerCase()}`}>
+                        {status}
+                      </span>
+                    </div>
+                    <div className="stat-value">
+                      <span>{toNumber(value)}</span>
+                      <small>{meta.unit}</small>
+                    </div>
+                    <p className={`delta ${delta >= 0 ? "up" : "down"}`}>
+                      {delta >= 0 ? "+" : ""}
+                      {toNumber(delta)} since last test
+                    </p>
                   </div>
-                  <div className="stat-value">
-                    <span>{toNumber(value)}</span>
-                    <small>{meta.unit}</small>
-                  </div>
-                  <p className={`delta ${delta >= 0 ? "up" : "down"}`}>
-                    {delta >= 0 ? "+" : ""}
-                    {toNumber(delta)} since last test
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="card chart-card">
-            <div className="card-header">
-              <div>
-                <p className="eyebrow">Trend · last 6 months</p>
-                <h2>{overviewMetricMeta.label}</h2>
-              </div>
-              <div className="pill-tabs">
-                {metricTabs.map((key) => (
-                  <button
-                    key={key}
-                    className={overviewMetric === key ? "active" : ""}
-                    onClick={() => setOverviewMetric(key)}
-                  >
-                    {vitaminMeta[key].label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="chart-shell">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={overviewRows}>
-                  <CartesianGrid
-                    strokeDasharray="4 4"
-                    stroke="rgba(255,255,255,0.08)"
-                  />
-                  <XAxis
-                    dataKey="date"
-                    tickFormatter={formatMonth}
-                    tick={{ fill: "#dbe0ff" }}
-                  />
-                  <YAxis tick={{ fill: "#dbe0ff" }} domain={["auto", "auto"]} />
-                  <Tooltip
-                    formatter={(value) => `${value} ${overviewMetricMeta.unit}`}
-                    labelFormatter={formatLabel}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey={overviewMetric}
-                    stroke="#f7b267"
-                    strokeWidth={3}
-                    dot={{ r: 4 }}
-                    activeDot={{ r: 6 }}
-                  />
-                  <ReferenceLine
-                    y={overviewMetricMeta.goal}
-                    stroke="#f25f5c"
-                    strokeDasharray="6 6"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          <div className="card table-card">
-            <div className="card-header">
-              <div>
-                <p className="eyebrow">Recent results</p>
-                <h2>Latest readings</h2>
-              </div>
-              <p className="muted">Updated {formatDate(latest.date)}</p>
-            </div>
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Vitamin D</th>
-                    <th>Calcium</th>
-                    <th>B1 (Thiamine)</th>
-                    <th>Notes</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentRows.map((row) => (
-                    <tr key={row.date}>
-                      <td>{formatDate(row.date)}</td>
-                      <td>{toNumber(row.vitaminD)}</td>
-                      <td>{toNumber(row.calcium)}</td>
-                      <td>{toNumber(row.thiamine)}</td>
-                      <td>{row.notes ?? "—"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {section === "history" && (
-        <section className="section history-section">
-          <aside className="filters">
-            <div className="filter-block">
-              <p className="filter-title">Date range</p>
-              <div className="filter-list">
-                {timeRanges.map((range) => (
-                  <button
-                    key={range.key}
-                    className={rangeKey === range.key ? "active" : ""}
-                    onClick={() => setRangeKey(range.key)}
-                  >
-                    {range.label}
-                  </button>
-                ))}
-              </div>
+                );
+              })}
             </div>
 
-            <div className="filter-block">
-              <p className="filter-title">Metrics</p>
-              <div className="filter-list">
-                {metricTabs.map((metric) => (
-                  <label key={metric} className="checkbox">
-                    <input
-                      type="checkbox"
-                      checked={selectedMetrics.includes(metric)}
-                      onChange={() => toggleMetric(metric)}
-                    />
-                    <span>{vitaminMeta[metric].label}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div className="filter-block">
-              <p className="filter-title">Targets</p>
-              <label className="switch">
-                <input
-                  type="checkbox"
-                  checked={showGoal}
-                  onChange={() => setShowGoal((value) => !value)}
-                />
-                <span>Show goal line</span>
-              </label>
-            </div>
-          </aside>
-
-          <div className="history-content">
             <div className="card chart-card">
               <div className="card-header">
                 <div>
-                  <p className="eyebrow">History · {selectedRange?.label}</p>
-                  <h2>Vitamin trends</h2>
+                  <p className="eyebrow">Trend - last 6 months</p>
+                  <h2>{overviewMetricMeta.label}</h2>
                 </div>
-                <button
-                  className="ghost"
-                  onClick={() => downloadCsv("vitamin-history.csv", sortedRows)}
-                >
-                  Export CSV
-                </button>
+                <div className="pill-tabs">
+                  {metricTabs.map((key) => (
+                    <button
+                      key={key}
+                      className={overviewMetric === key ? "active" : ""}
+                      onClick={() => setOverviewMetric(key)}
+                    >
+                      {vitaminMeta[key].label}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div className="chart-shell chart-shell-lg">
+              <div className="chart-shell">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={sortedRows.slice().reverse()}>
-                    <CartesianGrid
-                      strokeDasharray="4 4"
-                      stroke="rgba(255,255,255,0.08)"
+                  <LineChart data={overviewRows}>
+                    <CartesianGrid strokeDasharray="4 4" stroke="rgba(255,255,255,0.08)" />
+                    <XAxis dataKey="date" tickFormatter={formatMonth} tick={{ fill: "#dbe0ff" }} />
+                    <YAxis tick={{ fill: "#dbe0ff" }} domain={["auto", "auto"]} />
+                    <Tooltip
+                      formatter={(value) => `${value} ${overviewMetricMeta.unit}`}
+                      labelFormatter={formatLabel}
                     />
-                    <XAxis
-                      dataKey="date"
-                      tickFormatter={formatMonth}
-                      tick={{ fill: "#dbe0ff" }}
+                    <Line
+                      type="monotone"
+                      dataKey={overviewMetric}
+                      stroke="#f7b267"
+                      strokeWidth={3}
+                      dot={{ r: 4 }}
+                      activeDot={{ r: 6 }}
                     />
-                    <YAxis
-                      tick={{ fill: "#dbe0ff" }}
-                      domain={["auto", "auto"]}
-                    />
-                    <Tooltip labelFormatter={formatLabel} />
-                    <Legend />
-                    {selectedMetrics.includes("vitaminD") && (
-                      <Line
-                        type="monotone"
-                        dataKey="vitaminD"
-                        name={vitaminMeta.vitaminD.label}
-                        stroke="#f7b267"
-                        strokeWidth={3}
-                        dot={{ r: 3 }}
-                      />
-                    )}
-                    {selectedMetrics.includes("calcium") && (
-                      <Line
-                        type="monotone"
-                        dataKey="calcium"
-                        name={vitaminMeta.calcium.label}
-                        stroke="#7bdff2"
-                        strokeWidth={3}
-                        dot={{ r: 3 }}
-                      />
-                    )}
-                    {selectedMetrics.includes("thiamine") && (
-                      <Line
-                        type="monotone"
-                        dataKey="thiamine"
-                        name={vitaminMeta.thiamine.label}
-                        stroke="#f25f5c"
-                        strokeWidth={3}
-                        dot={{ r: 3 }}
-                      />
-                    )}
-                    {showGoal &&
-                      selectedMetrics.map((metric) => (
-                        <ReferenceLine
-                          key={metric}
-                          y={vitaminMeta[metric].goal}
-                          stroke="rgba(255,255,255,0.3)"
-                          strokeDasharray="4 6"
-                        />
-                      ))}
+                    <ReferenceLine y={overviewMetricMeta.goal} stroke="#f25f5c" strokeDasharray="6 6" />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -453,104 +277,226 @@ export default function App() {
             <div className="card table-card">
               <div className="card-header">
                 <div>
-                  <p className="eyebrow">All readings</p>
-                  <h2>History table</h2>
+                  <p className="eyebrow">Recent results</p>
+                  <h2>Latest readings</h2>
                 </div>
-                <p className="muted">Sorting enabled</p>
+                <p className="muted">Updated {formatDate(latest.date)}</p>
               </div>
               <div className="table-wrap">
                 <table>
                   <thead>
                     <tr>
-                      <th onClick={() => handleSort("date")}>
-                        Date{" "}
-                        {sortKey === "date"
-                          ? sortDir === "asc"
-                            ? "↑"
-                            : "↓"
-                          : ""}
-                      </th>
-                      <th onClick={() => handleSort("vitaminD")}>
-                        Vitamin D{" "}
-                        {sortKey === "vitaminD"
-                          ? sortDir === "asc"
-                            ? "↑"
-                            : "↓"
-                          : ""}
-                      </th>
-                      <th onClick={() => handleSort("calcium")}>
-                        Calcium{" "}
-                        {sortKey === "calcium"
-                          ? sortDir === "asc"
-                            ? "↑"
-                            : "↓"
-                          : ""}
-                      </th>
-                      <th onClick={() => handleSort("thiamine")}>
-                        B1{" "}
-                        {sortKey === "thiamine"
-                          ? sortDir === "asc"
-                            ? "↑"
-                            : "↓"
-                          : ""}
-                      </th>
-                      <th onClick={() => handleSort("notes")}>
-                        Notes{" "}
-                        {sortKey === "notes"
-                          ? sortDir === "asc"
-                            ? "↑"
-                            : "↓"
-                          : ""}
-                      </th>
+                      <th>Date</th>
+                      <th>Vitamin D</th>
+                      <th>Calcium</th>
+                      <th>B1 (Thiamine)</th>
+                      <th>Notes</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {sortedRows.map((row) => (
+                    {recentRows.map((row) => (
                       <tr key={row.date}>
                         <td>{formatDate(row.date)}</td>
                         <td>{toNumber(row.vitaminD)}</td>
                         <td>{toNumber(row.calcium)}</td>
                         <td>{toNumber(row.thiamine)}</td>
-                        <td>{row.notes ?? "—"}</td>
+                        <td>{row.notes ?? "--"}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
             </div>
-          </div>
-        </section>
-      )}
+          </section>
+        )}
 
-      {section === "resources" && (
-        <section className="section resources-section">
-          <div className="resources-grid">
-            {metricTabs.map((key) => {
-              const meta = vitaminMeta[key];
-              return (
-                <article className="resource-card" key={key}>
-                  <h2>{meta.label}</h2>
-                  <p className="resource-desc">{meta.description}</p>
-                  <div className="resource-tips">
-                    <p className="eyebrow">Ways to improve</p>
-                    <ul>
-                      {meta.tips.map((tip) => (
-                        <li key={tip}>{tip}</li>
+        {section === "history" && (
+          <section className="section history-section">
+            <aside className="filters">
+              <div className="filter-block">
+                <p className="filter-title">Date range</p>
+                <div className="filter-list filter-list-row">
+                  {timeRanges.map((range) => (
+                    <button
+                      key={range.key}
+                      className={rangeKey === range.key ? "active" : ""}
+                      onClick={() => setRangeKey(range.key)}
+                    >
+                      {range.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="filter-block">
+                <p className="filter-title">Metrics</p>
+                <div className="filter-list">
+                  {metricTabs.map((metric) => (
+                    <label key={metric} className="checkbox">
+                      <input
+                        type="checkbox"
+                        checked={selectedMetrics.includes(metric)}
+                        onChange={() => toggleMetric(metric)}
+                      />
+                      <span>{vitaminMeta[metric].label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="filter-block">
+                <p className="filter-title">Targets</p>
+                <label className="switch">
+                  <input
+                    type="checkbox"
+                    checked={showGoal}
+                    onChange={() => setShowGoal((value) => !value)}
+                  />
+                  <span>Show goal line</span>
+                </label>
+              </div>
+            </aside>
+
+            <div className="history-content">
+              <div className="card chart-card">
+                <div className="card-header">
+                  <div>
+                    <p className="eyebrow">History - {selectedRange?.label}</p>
+                    <h2>Vitamin trends</h2>
+                  </div>
+                  <button className="ghost" onClick={() => downloadCsv("vitamin-history.csv", sortedRows)}>
+                    Export CSV
+                  </button>
+                </div>
+                <div className="chart-shell chart-shell-lg">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={sortedRows.slice().reverse()}>
+                      <CartesianGrid strokeDasharray="4 4" stroke="rgba(255,255,255,0.08)" />
+                      <XAxis dataKey="date" tickFormatter={formatMonth} tick={{ fill: "#dbe0ff" }} />
+                      <YAxis tick={{ fill: "#dbe0ff" }} domain={["auto", "auto"]} />
+                      <Tooltip labelFormatter={formatLabel} />
+                      <Legend />
+                      {selectedMetrics.includes("vitaminD") && (
+                        <Line
+                          type="monotone"
+                          dataKey="vitaminD"
+                          name={vitaminMeta.vitaminD.label}
+                          stroke="#f7b267"
+                          strokeWidth={3}
+                          dot={{ r: 3 }}
+                        />
+                      )}
+                      {selectedMetrics.includes("calcium") && (
+                        <Line
+                          type="monotone"
+                          dataKey="calcium"
+                          name={vitaminMeta.calcium.label}
+                          stroke="#7bdff2"
+                          strokeWidth={3}
+                          dot={{ r: 3 }}
+                        />
+                      )}
+                      {selectedMetrics.includes("thiamine") && (
+                        <Line
+                          type="monotone"
+                          dataKey="thiamine"
+                          name={vitaminMeta.thiamine.label}
+                          stroke="#f25f5c"
+                          strokeWidth={3}
+                          dot={{ r: 3 }}
+                        />
+                      )}
+                      {showGoal &&
+                        selectedMetrics.map((metric) => (
+                          <ReferenceLine
+                            key={metric}
+                            y={vitaminMeta[metric].goal}
+                            stroke="rgba(255,255,255,0.3)"
+                            strokeDasharray="4 6"
+                          />
+                        ))}
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              <div className="card table-card">
+                <div className="card-header">
+                  <div>
+                    <p className="eyebrow">All readings</p>
+                    <h2>History table</h2>
+                  </div>
+                  <p className="muted">Sorting enabled</p>
+                </div>
+                <div className="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th onClick={() => handleSort("date")}>
+                          Date {sortKey === "date" ? (sortDir === "asc" ? "^" : "v") : ""}
+                        </th>
+                        <th onClick={() => handleSort("vitaminD")}>
+                          Vitamin D {sortKey === "vitaminD" ? (sortDir === "asc" ? "^" : "v") : ""}
+                        </th>
+                        <th onClick={() => handleSort("calcium")}>
+                          Calcium {sortKey === "calcium" ? (sortDir === "asc" ? "^" : "v") : ""}
+                        </th>
+                        <th onClick={() => handleSort("thiamine")}>
+                          B1 {sortKey === "thiamine" ? (sortDir === "asc" ? "^" : "v") : ""}
+                        </th>
+                        <th onClick={() => handleSort("notes")}>
+                          Notes {sortKey === "notes" ? (sortDir === "asc" ? "^" : "v") : ""}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sortedRows.map((row) => (
+                        <tr key={row.date}>
+                          <td>{formatDate(row.date)}</td>
+                          <td>{toNumber(row.vitaminD)}</td>
+                          <td>{toNumber(row.calcium)}</td>
+                          <td>{toNumber(row.thiamine)}</td>
+                          <td>{row.notes ?? "--"}</td>
+                        </tr>
                       ))}
-                    </ul>
-                  </div>
-                  <div className="resource-footer">
-                    <span>Goal target</span>
-                    <strong>
-                      {meta.goal} {meta.unit}
-                    </strong>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        </section>
-      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {section === "resources" && (
+          <section className="section resources-section">
+            <div className="resources-grid">
+              {metricTabs.map((key) => {
+                const meta = vitaminMeta[key];
+                return (
+                  <article className="resource-card" key={key}>
+                    <h2>{meta.label}</h2>
+                    <p className="resource-desc">{meta.description}</p>
+                    <div className="resource-tips">
+                      <p className="eyebrow">Ways to improve</p>
+                      <ul>
+                        {meta.tips.map((tip) => (
+                          <li key={tip}>{tip}</li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div className="resource-footer">
+                      <span>Goal target</span>
+                      <strong>
+                        {meta.goal} {meta.unit}
+                      </strong>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+        )}
+      </div>
     </div>
   );
 }

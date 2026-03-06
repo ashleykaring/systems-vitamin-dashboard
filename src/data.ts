@@ -1,4 +1,4 @@
-export type VitaminKey = "vitaminD" | "calcium" | "thiamine";
+export type VitaminKey = "vitaminD" | "calcium" | "vitaminC" | "copper";
 
 export type Level = "low" | "med" | "high";
 
@@ -10,7 +10,8 @@ export type Reading = {
   date: string;
   vitaminD: MetricState;
   calcium: MetricState;
-  thiamine: MetricState;
+  vitaminC: MetricState;
+  copper: MetricState;
   notes?: string;
 };
 
@@ -45,15 +46,26 @@ export const vitaminMeta: Record<
       "Pair with vitamin D habits to support uptake.",
     ],
   },
-  thiamine: {
-    label: "B1 (Thiamine)",
+  vitaminC: {
+    label: "Vitamin C",
     targetState: "Med",
     description:
-      "Thiamine helps convert food into energy and supports nerve function. Status tracking highlights category transitions and consistency.",
+      "Vitamin C supports immune defense, collagen production, and antioxidant balance. Status tracking highlights category transitions and consistency.",
     tips: [
-      "Include whole grains, legumes, and seeds.",
-      "Limit excessive alcohol, which can lower status.",
-      "Use fortified options when dietary consistency drops.",
+      "Include citrus, berries, peppers, and broccoli regularly.",
+      "Favor fresh or lightly cooked produce to preserve content.",
+      "Use food-first routines and only supplement when needed.",
+    ],
+  },
+  copper: {
+    label: "Copper",
+    targetState: "Med",
+    description:
+      "Copper supports iron metabolism, connective tissue formation, and nervous system function. Category tracking shows whether status is Low, Med, or High over time.",
+    tips: [
+      "Include shellfish, nuts, seeds, and legumes regularly.",
+      "Avoid excessive zinc-only supplementation without guidance.",
+      "Use balanced multinutrient routines when intake is inconsistent.",
     ],
   },
 };
@@ -62,85 +74,98 @@ export const readings: Reading[] = [
   {
     date: "2025-02-12",
     vitaminD: { level: "low" },
-    calcium: { level: "med" },
-    thiamine: { level: "low" },
+    calcium: { level: "low" },
+    vitaminC: { level: "low" },
+    copper: { level: "med" },
     notes: "Initial baseline",
   },
   {
     date: "2025-03-15",
     vitaminD: { level: "med" },
-    calcium: { level: "med" },
-    thiamine: { level: "med" },
+    calcium: { level: "low" },
+    vitaminC: { level: "med" },
+    copper: { level: "low" },
   },
   {
     date: "2025-04-12",
     vitaminD: { level: "med" },
     calcium: { level: "med" },
-    thiamine: { level: "med" },
+    vitaminC: { level: "high" },
+    copper: { level: "med" },
     notes: "Added vitamin D supplement",
   },
   {
     date: "2025-05-17",
-    vitaminD: { level: "med" },
+    vitaminD: { level: "high" },
     calcium: { level: "med" },
-    thiamine: { level: "med" },
+    vitaminC: { level: "high" },
+    copper: { level: "high" },
   },
   {
     date: "2025-06-14",
-    vitaminD: { level: "med" },
-    calcium: { level: "med" },
-    thiamine: { level: "med" },
+    vitaminD: { level: "high" },
+    calcium: { level: "high" },
+    vitaminC: { level: "med" },
+    copper: { level: "high" },
     notes: "Increased outdoor activity",
   },
   {
     date: "2025-07-12",
     vitaminD: { level: "med" },
-    calcium: { level: "med" },
-    thiamine: { level: "med" },
+    calcium: { level: "high" },
+    vitaminC: { level: "low" },
+    copper: { level: "med" },
   },
   {
     date: "2025-08-16",
     vitaminD: { level: "high" },
     calcium: { level: "med" },
-    thiamine: { level: "med" },
+    vitaminC: { level: "low" },
+    copper: { level: "low" },
   },
   {
     date: "2025-09-14",
     vitaminD: { level: "high" },
-    calcium: { level: "med" },
-    thiamine: { level: "high" },
+    calcium: { level: "low" },
+    vitaminC: { level: "high" },
+    copper: { level: "low" },
   },
   {
     date: "2025-10-12",
-    vitaminD: { level: "med" },
+    vitaminD: { level: "low" },
     calcium: { level: "med" },
-    thiamine: { level: "med" },
+    vitaminC: { level: "med" },
+    copper: { level: "med" },
     notes: "Travel period",
   },
   {
     date: "2025-11-16",
     vitaminD: { level: "med" },
-    calcium: { level: "med" },
-    thiamine: { level: "med" },
+    calcium: { level: "high" },
+    vitaminC: { level: "high" },
+    copper: { level: "high" },
   },
   {
     date: "2025-12-14",
-    vitaminD: { level: "med" },
-    calcium: { level: "med" },
-    thiamine: { level: "med" },
+    vitaminD: { level: "low" },
+    calcium: { level: "high" },
+    vitaminC: { level: "med" },
+    copper: { level: "high" },
   },
   {
     date: "2026-01-11",
     vitaminD: { level: "med" },
     calcium: { level: "med" },
-    thiamine: { level: "med" },
+    vitaminC: { level: "low" },
+    copper: { level: "med" },
     notes: "Routine adjusted",
   },
   {
     date: "2026-02-08",
-    vitaminD: { level: "med" },
-    calcium: { level: "med" },
-    thiamine: { level: "med" },
+    vitaminD: { level: "high" },
+    calcium: { level: "high" },
+    vitaminC: { level: "med" },
+    copper: { level: "high" },
     notes: "Latest check-in",
   },
 ];

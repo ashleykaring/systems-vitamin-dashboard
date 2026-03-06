@@ -22,7 +22,13 @@ import {
 type Section = "overview" | "history" | "resources";
 type SortKey = "date" | VitaminKey | "notes";
 
-const metricTabs: VitaminKey[] = ["vitaminD", "calcium", "thiamine"];
+const metricTabs: VitaminKey[] = ["vitaminD", "calcium", "vitaminC", "copper"];
+const metricColors: Record<VitaminKey, string> = {
+  vitaminD: "#f7b267",
+  calcium: "#7bdff2",
+  vitaminC: "#f25f5c",
+  copper: "#9e7bff",
+};
 
 const timeRanges = [
   { key: "30d", label: "30d", days: 30 },
@@ -109,20 +115,18 @@ const toChartRow = (row: Reading) => ({
   date: row.date,
   vitaminDScore: levelScore[row.vitaminD.level],
   calciumScore: levelScore[row.calcium.level],
-  thiamineScore: levelScore[row.thiamine.level],
+  vitaminCScore: levelScore[row.vitaminC.level],
+  copperScore: levelScore[row.copper.level],
 });
 
-const isMetricKey = (value: string): value is VitaminKey =>
-  metricTabs.includes(value as VitaminKey);
+const isMetricKey = (value: string): value is VitaminKey => metricTabs.includes(value as VitaminKey);
 
 export default function App() {
   const [section, setSection] = useState<Section>("overview");
   const [overviewMetric, setOverviewMetric] = useState<VitaminKey>("vitaminD");
   const [rangeKey, setRangeKey] = useState<(typeof timeRanges)[number]["key"]>("6m");
   const [selectedMetrics, setSelectedMetrics] = useState<VitaminKey[]>([
-    "vitaminD",
-    "calcium",
-    "thiamine",
+    ...metricTabs,
   ]);
   const [showGuides, setShowGuides] = useState(true);
   const [sortKey, setSortKey] = useState<SortKey>("date");
@@ -271,7 +275,7 @@ export default function App() {
                     <Line
                       type="monotone"
                       dataKey={getScoreKey(overviewMetric)}
-                      stroke="#f7b267"
+                      stroke={metricColors[overviewMetric]}
                       strokeWidth={3}
                       dot={{ r: 4 }}
                       activeDot={{ r: 6 }}
@@ -300,9 +304,9 @@ export default function App() {
                   <thead>
                     <tr>
                       <th>Date</th>
-                      <th>Vitamin D</th>
-                      <th>Calcium</th>
-                      <th>B1 (Thiamine)</th>
+                      {metricTabs.map((metric) => (
+                        <th key={metric}>{vitaminMeta[metric].label}</th>
+                      ))}
                       <th>Notes</th>
                     </tr>
                   </thead>
@@ -310,21 +314,13 @@ export default function App() {
                     {recentRows.map((row) => (
                       <tr key={row.date}>
                         <td>{formatDate(row.date)}</td>
-                        <td>
-                          <span className={`status-pill status-${row.vitaminD.level}`}>
-                            {formatState(row.vitaminD)}
-                          </span>
-                        </td>
-                        <td>
-                          <span className={`status-pill status-${row.calcium.level}`}>
-                            {formatState(row.calcium)}
-                          </span>
-                        </td>
-                        <td>
-                          <span className={`status-pill status-${row.thiamine.level}`}>
-                            {formatState(row.thiamine)}
-                          </span>
-                        </td>
+                        {metricTabs.map((metric) => (
+                          <td key={metric}>
+                            <span className={`status-pill status-${row[metric].level}`}>
+                              {formatState(row[metric])}
+                            </span>
+                          </td>
+                        ))}
                         <td>{row.notes ?? "--"}</td>
                       </tr>
                     ))}
@@ -415,36 +411,19 @@ export default function App() {
                         }}
                       />
                       <Legend />
-                      {selectedMetrics.includes("vitaminD") && (
-                        <Line
-                          type="monotone"
-                          dataKey={getScoreKey("vitaminD")}
-                          name={vitaminMeta.vitaminD.label}
-                          stroke="#f7b267"
-                          strokeWidth={3}
-                          dot={{ r: 3 }}
-                        />
-                      )}
-                      {selectedMetrics.includes("calcium") && (
-                        <Line
-                          type="monotone"
-                          dataKey={getScoreKey("calcium")}
-                          name={vitaminMeta.calcium.label}
-                          stroke="#7bdff2"
-                          strokeWidth={3}
-                          dot={{ r: 3 }}
-                        />
-                      )}
-                      {selectedMetrics.includes("thiamine") && (
-                        <Line
-                          type="monotone"
-                          dataKey={getScoreKey("thiamine")}
-                          name={vitaminMeta.thiamine.label}
-                          stroke="#f25f5c"
-                          strokeWidth={3}
-                          dot={{ r: 3 }}
-                        />
-                      )}
+                      {metricTabs
+                        .filter((metric) => selectedMetrics.includes(metric))
+                        .map((metric) => (
+                          <Line
+                            key={metric}
+                            type="monotone"
+                            dataKey={getScoreKey(metric)}
+                            name={vitaminMeta[metric].label}
+                            stroke={metricColors[metric]}
+                            strokeWidth={3}
+                            dot={{ r: 3 }}
+                          />
+                        ))}
                       {showGuides && (
                         <>
                           <ReferenceLine y={1.5} stroke="rgba(255,255,255,0.28)" strokeDasharray="4 6" />
@@ -471,15 +450,12 @@ export default function App() {
                         <th onClick={() => handleSort("date")}>
                           Date {sortKey === "date" ? (sortDir === "asc" ? "^" : "v") : ""}
                         </th>
-                        <th onClick={() => handleSort("vitaminD")}>
-                          Vitamin D {sortKey === "vitaminD" ? (sortDir === "asc" ? "^" : "v") : ""}
-                        </th>
-                        <th onClick={() => handleSort("calcium")}>
-                          Calcium {sortKey === "calcium" ? (sortDir === "asc" ? "^" : "v") : ""}
-                        </th>
-                        <th onClick={() => handleSort("thiamine")}>
-                          B1 {sortKey === "thiamine" ? (sortDir === "asc" ? "^" : "v") : ""}
-                        </th>
+                        {metricTabs.map((metric) => (
+                          <th key={metric} onClick={() => handleSort(metric)}>
+                            {vitaminMeta[metric].label}{" "}
+                            {sortKey === metric ? (sortDir === "asc" ? "^" : "v") : ""}
+                          </th>
+                        ))}
                         <th onClick={() => handleSort("notes")}>
                           Notes {sortKey === "notes" ? (sortDir === "asc" ? "^" : "v") : ""}
                         </th>
@@ -489,21 +465,13 @@ export default function App() {
                       {sortedRows.map((row) => (
                         <tr key={row.date}>
                           <td>{formatDate(row.date)}</td>
-                          <td>
-                            <span className={`status-pill status-${row.vitaminD.level}`}>
-                              {formatState(row.vitaminD)}
-                            </span>
-                          </td>
-                          <td>
-                            <span className={`status-pill status-${row.calcium.level}`}>
-                              {formatState(row.calcium)}
-                            </span>
-                          </td>
-                          <td>
-                            <span className={`status-pill status-${row.thiamine.level}`}>
-                              {formatState(row.thiamine)}
-                            </span>
-                          </td>
+                          {metricTabs.map((metric) => (
+                            <td key={metric}>
+                              <span className={`status-pill status-${row[metric].level}`}>
+                                {formatState(row[metric])}
+                              </span>
+                            </td>
+                          ))}
                           <td>{row.notes ?? "--"}</td>
                         </tr>
                       ))}

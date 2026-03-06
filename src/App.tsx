@@ -10,9 +10,17 @@ import {
   Legend,
   ReferenceLine,
 } from "recharts";
-import { readings, vitaminMeta, type VitaminKey, type Reading } from "./data";
+import {
+  readings,
+  vitaminMeta,
+  type VitaminKey,
+  type Reading,
+  type MetricState,
+  type Level,
+} from "./data";
 
 type Section = "overview" | "history" | "resources";
+type SortKey = "date" | VitaminKey | "notes";
 
 const metricTabs: VitaminKey[] = ["vitaminD", "calcium", "thiamine"];
 
@@ -23,6 +31,24 @@ const timeRanges = [
   { key: "1y", label: "1y", days: 365 },
   { key: "all", label: "all", days: null },
 ] as const;
+
+const levelScore: Record<Level, number> = {
+  low: 1,
+  med: 2,
+  high: 3,
+};
+
+const levelLabel: Record<Level, string> = {
+  low: "Low",
+  med: "Med",
+  high: "High",
+};
+
+const scoreLabel: Record<number, string> = {
+  1: "Low",
+  2: "Med",
+  3: "High",
+};
 
 const formatDate = (value: string | number) =>
   new Date(value).toLocaleDateString("en-US", {
@@ -44,74 +70,50 @@ const formatLabel = (value: unknown) => {
   return "";
 };
 
-const getStatus = (key: VitaminKey, value: number) => {
-  const { low, high } = vitaminMeta[key];
-  if (value < low) return "Low";
-  if (value > high) return "High";
-  return "In Range";
-};
+const getScoreKey = (metric: VitaminKey) => `${metric}Score` as const;
 
-const toNumber = (value: number) => Math.round(value * 10) / 10;
+const formatState = (state: MetricState) => levelLabel[state.level];
 
-const csvEscape = (value: string | number | null | undefined) => {
-  const raw = value ?? "";
-  const str = `${raw}`;
-  if (str.includes(",") || str.includes('"') || str.includes("\n")) {
-    return `"${str.replace(/"/g, '""')}"`;
+const stateScore = (state: MetricState) => levelScore[state.level];
+
+const compareState = (a: MetricState, b: MetricState) => stateScore(a) - stateScore(b);
+
+const getTrend = (previous: MetricState, current: MetricState) => {
+  const scoreDiff = stateScore(current) - stateScore(previous);
+  if (scoreDiff > 0) {
+    return { text: `${formatState(previous)} -> ${formatState(current)}`, direction: "up" as const };
   }
-  return str;
+  if (scoreDiff < 0) {
+    return { text: `${formatState(previous)} -> ${formatState(current)}`, direction: "down" as const };
+  }
+  return { text: `No change (${formatState(current)})`, direction: "flat" as const };
 };
 
-const buildCsv = (rows: Reading[]) => {
-  const headers = [
-    "Date",
-    "Vitamin D (ng/mL)",
-    "Calcium (mg/dL)",
-    "B1 (nmol/L)",
-    "Notes",
-  ];
-  const lines = rows.map((row) =>
-    [
-      formatDate(row.date),
-      toNumber(row.vitaminD),
-      toNumber(row.calcium),
-      toNumber(row.thiamine),
-      row.notes ?? "",
-    ].map(csvEscape),
-  );
-  return [headers.map(csvEscape), ...lines].map((line) => line.join(",")).join("\n");
-};
-
-const downloadCsv = (filename: string, rows: Reading[]) => {
-  const blob = new Blob([buildCsv(rows)], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
-};
-
-const sortRows = (
-  rows: Reading[],
-  key: keyof Reading,
-  direction: "asc" | "desc",
-) => {
+const sortRows = (rows: Reading[], key: SortKey, direction: "asc" | "desc") => {
   const sorted = [...rows].sort((a, b) => {
-    const valueA = a[key] ?? "";
-    const valueB = b[key] ?? "";
-    if (typeof valueA === "number" && typeof valueB === "number") {
-      return valueA - valueB;
+    if (key === "date") {
+      return new Date(a.date).getTime() - new Date(b.date).getTime();
     }
-    return `${valueA}`.localeCompare(`${valueB}`);
+    if (key === "notes") {
+      return `${a.notes ?? ""}`.localeCompare(`${b.notes ?? ""}`);
+    }
+    return compareState(a[key], b[key]);
   });
   if (direction === "desc") {
     sorted.reverse();
   }
   return sorted;
 };
+
+const toChartRow = (row: Reading) => ({
+  date: row.date,
+  vitaminDScore: levelScore[row.vitaminD.level],
+  calciumScore: levelScore[row.calcium.level],
+  thiamineScore: levelScore[row.thiamine.level],
+});
+
+const isMetricKey = (value: string): value is VitaminKey =>
+  metricTabs.includes(value as VitaminKey);
 
 export default function App() {
   const [section, setSection] = useState<Section>("overview");
@@ -122,8 +124,8 @@ export default function App() {
     "calcium",
     "thiamine",
   ]);
-  const [showGoal, setShowGoal] = useState(true);
-  const [sortKey, setSortKey] = useState<keyof Reading>("date");
+  const [showGuides, setShowGuides] = useState(true);
+  const [sortKey, setSortKey] = useState<SortKey>("date");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
   const latest = readings[readings.length - 1];
@@ -135,7 +137,7 @@ export default function App() {
       cutoff.setMonth(cutoff.getMonth() - 6);
       return new Date(row.date) >= cutoff;
     });
-    return lastSixMonths;
+    return lastSixMonths.map(toChartRow);
   }, [latest.date]);
 
   const selectedRange = timeRanges.find((range) => range.key === rangeKey);
@@ -151,6 +153,8 @@ export default function App() {
     [filteredRows, sortKey, sortDir],
   );
 
+  const historyChartRows = useMemo(() => sortedRows.slice().reverse().map(toChartRow), [sortedRows]);
+
   const recentRows = readings.slice(-6).reverse();
 
   const overviewMetricMeta = vitaminMeta[overviewMetric];
@@ -164,7 +168,7 @@ export default function App() {
     });
   };
 
-  const handleSort = (key: keyof Reading) => {
+  const handleSort = (key: SortKey) => {
     if (key === sortKey) {
       setSortDir((dir) => (dir === "asc" ? "desc" : "asc"));
     } else {
@@ -178,8 +182,10 @@ export default function App() {
       <div className="app">
         <header className="app-header">
           <div>
-            <h1>Vitamin Levels Dashboard</h1>
-            <p className="subhead">Mock data demo of vitamin monitoring and insights.</p>
+            <h1>Vitamin State Dashboard</h1>
+            <p className="subhead">
+              Dashboard focused on detectable categories: Low, Med, and High.
+            </p>
           </div>
           <nav className="nav-tabs">
             <button
@@ -208,25 +214,19 @@ export default function App() {
             <div className="card-grid">
               {metricTabs.map((key) => {
                 const meta = vitaminMeta[key];
-                const value = latest[key];
-                const delta = value - previous[key];
-                const status = getStatus(key, value);
+                const currentState = latest[key];
+                const status = levelLabel[currentState.level];
+                const trend = getTrend(previous[key], currentState);
                 return (
                   <div className="stat-card" key={key}>
                     <div className="stat-header">
                       <p>{meta.label}</p>
-                      <span className={`badge badge-${status.replace(" ", "").toLowerCase()}`}>
-                        {status}
-                      </span>
+                      <span className={`badge badge-${currentState.level}`}>{status}</span>
                     </div>
                     <div className="stat-value">
-                      <span>{toNumber(value)}</span>
-                      <small>{meta.unit}</small>
+                      <span>{formatState(currentState)}</span>
                     </div>
-                    <p className={`delta ${delta >= 0 ? "up" : "down"}`}>
-                      {delta >= 0 ? "+" : ""}
-                      {toNumber(delta)} since last test
-                    </p>
+                    <p className={`delta ${trend.direction}`}>{trend.text}</p>
                   </div>
                 );
               })}
@@ -255,20 +255,33 @@ export default function App() {
                   <LineChart data={overviewRows}>
                     <CartesianGrid strokeDasharray="4 4" stroke="rgba(255,255,255,0.08)" />
                     <XAxis dataKey="date" tickFormatter={formatMonth} tick={{ fill: "#dbe0ff" }} />
-                    <YAxis tick={{ fill: "#dbe0ff" }} domain={["auto", "auto"]} />
+                    <YAxis
+                      tick={{ fill: "#dbe0ff" }}
+                      domain={[0.8, 3.2]}
+                      ticks={[1, 2, 3]}
+                      tickFormatter={(value) => scoreLabel[value] ?? ""}
+                    />
                     <Tooltip
-                      formatter={(value) => `${value} ${overviewMetricMeta.unit}`}
                       labelFormatter={formatLabel}
+                      formatter={(value) => {
+                        const score = typeof value === "number" ? value : Number(value);
+                        return [scoreLabel[score] ?? "", overviewMetricMeta.label];
+                      }}
                     />
                     <Line
                       type="monotone"
-                      dataKey={overviewMetric}
+                      dataKey={getScoreKey(overviewMetric)}
                       stroke="#f7b267"
                       strokeWidth={3}
                       dot={{ r: 4 }}
                       activeDot={{ r: 6 }}
                     />
-                    <ReferenceLine y={overviewMetricMeta.goal} stroke="#f25f5c" strokeDasharray="6 6" />
+                    {showGuides && (
+                      <>
+                        <ReferenceLine y={1.5} stroke="rgba(255,255,255,0.22)" strokeDasharray="4 6" />
+                        <ReferenceLine y={2.5} stroke="rgba(255,255,255,0.22)" strokeDasharray="4 6" />
+                      </>
+                    )}
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -297,9 +310,21 @@ export default function App() {
                     {recentRows.map((row) => (
                       <tr key={row.date}>
                         <td>{formatDate(row.date)}</td>
-                        <td>{toNumber(row.vitaminD)}</td>
-                        <td>{toNumber(row.calcium)}</td>
-                        <td>{toNumber(row.thiamine)}</td>
+                        <td>
+                          <span className={`status-pill status-${row.vitaminD.level}`}>
+                            {formatState(row.vitaminD)}
+                          </span>
+                        </td>
+                        <td>
+                          <span className={`status-pill status-${row.calcium.level}`}>
+                            {formatState(row.calcium)}
+                          </span>
+                        </td>
+                        <td>
+                          <span className={`status-pill status-${row.thiamine.level}`}>
+                            {formatState(row.thiamine)}
+                          </span>
+                        </td>
                         <td>{row.notes ?? "--"}</td>
                       </tr>
                     ))}
@@ -345,14 +370,14 @@ export default function App() {
               </div>
 
               <div className="filter-block">
-                <p className="filter-title">Targets</p>
+                <p className="filter-title">Guides</p>
                 <label className="switch">
                   <input
                     type="checkbox"
-                    checked={showGoal}
-                    onChange={() => setShowGoal((value) => !value)}
+                    checked={showGuides}
+                    onChange={() => setShowGuides((value) => !value)}
                   />
-                  <span>Show goal line</span>
+                  <span>Show Low/Med/High guide lines</span>
                 </label>
               </div>
             </aside>
@@ -364,22 +389,36 @@ export default function App() {
                     <p className="eyebrow">History - {selectedRange?.label}</p>
                     <h2>Vitamin trends</h2>
                   </div>
-                  <button className="ghost" onClick={() => downloadCsv("vitamin-history.csv", sortedRows)}>
-                    Export CSV
-                  </button>
+                  <p className="muted">Categorical trend view</p>
                 </div>
                 <div className="chart-shell chart-shell-lg">
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={sortedRows.slice().reverse()}>
+                    <LineChart data={historyChartRows}>
                       <CartesianGrid strokeDasharray="4 4" stroke="rgba(255,255,255,0.08)" />
                       <XAxis dataKey="date" tickFormatter={formatMonth} tick={{ fill: "#dbe0ff" }} />
-                      <YAxis tick={{ fill: "#dbe0ff" }} domain={["auto", "auto"]} />
-                      <Tooltip labelFormatter={formatLabel} />
+                      <YAxis
+                        tick={{ fill: "#dbe0ff" }}
+                        domain={[0.8, 3.2]}
+                        ticks={[1, 2, 3]}
+                        tickFormatter={(value) => scoreLabel[value] ?? ""}
+                      />
+                      <Tooltip
+                        labelFormatter={formatLabel}
+                        formatter={(value, name, item) => {
+                          const score = typeof value === "number" ? value : Number(value);
+                          const dataKey = `${item?.dataKey ?? ""}`;
+                          const metric = dataKey.replace("Score", "");
+                          if (isMetricKey(metric)) {
+                            return [scoreLabel[score] ?? "", vitaminMeta[metric].label];
+                          }
+                          return [scoreLabel[score] ?? "", `${name}`];
+                        }}
+                      />
                       <Legend />
                       {selectedMetrics.includes("vitaminD") && (
                         <Line
                           type="monotone"
-                          dataKey="vitaminD"
+                          dataKey={getScoreKey("vitaminD")}
                           name={vitaminMeta.vitaminD.label}
                           stroke="#f7b267"
                           strokeWidth={3}
@@ -389,7 +428,7 @@ export default function App() {
                       {selectedMetrics.includes("calcium") && (
                         <Line
                           type="monotone"
-                          dataKey="calcium"
+                          dataKey={getScoreKey("calcium")}
                           name={vitaminMeta.calcium.label}
                           stroke="#7bdff2"
                           strokeWidth={3}
@@ -399,22 +438,19 @@ export default function App() {
                       {selectedMetrics.includes("thiamine") && (
                         <Line
                           type="monotone"
-                          dataKey="thiamine"
+                          dataKey={getScoreKey("thiamine")}
                           name={vitaminMeta.thiamine.label}
                           stroke="#f25f5c"
                           strokeWidth={3}
                           dot={{ r: 3 }}
                         />
                       )}
-                      {showGoal &&
-                        selectedMetrics.map((metric) => (
-                          <ReferenceLine
-                            key={metric}
-                            y={vitaminMeta[metric].goal}
-                            stroke="rgba(255,255,255,0.3)"
-                            strokeDasharray="4 6"
-                          />
-                        ))}
+                      {showGuides && (
+                        <>
+                          <ReferenceLine y={1.5} stroke="rgba(255,255,255,0.28)" strokeDasharray="4 6" />
+                          <ReferenceLine y={2.5} stroke="rgba(255,255,255,0.28)" strokeDasharray="4 6" />
+                        </>
+                      )}
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
@@ -426,7 +462,7 @@ export default function App() {
                     <p className="eyebrow">All readings</p>
                     <h2>History table</h2>
                   </div>
-                  <p className="muted">Sorting enabled</p>
+                  <p className="muted">Category sorting enabled</p>
                 </div>
                 <div className="table-wrap">
                   <table>
@@ -453,9 +489,21 @@ export default function App() {
                       {sortedRows.map((row) => (
                         <tr key={row.date}>
                           <td>{formatDate(row.date)}</td>
-                          <td>{toNumber(row.vitaminD)}</td>
-                          <td>{toNumber(row.calcium)}</td>
-                          <td>{toNumber(row.thiamine)}</td>
+                          <td>
+                            <span className={`status-pill status-${row.vitaminD.level}`}>
+                              {formatState(row.vitaminD)}
+                            </span>
+                          </td>
+                          <td>
+                            <span className={`status-pill status-${row.calcium.level}`}>
+                              {formatState(row.calcium)}
+                            </span>
+                          </td>
+                          <td>
+                            <span className={`status-pill status-${row.thiamine.level}`}>
+                              {formatState(row.thiamine)}
+                            </span>
+                          </td>
                           <td>{row.notes ?? "--"}</td>
                         </tr>
                       ))}
@@ -485,10 +533,8 @@ export default function App() {
                       </ul>
                     </div>
                     <div className="resource-footer">
-                      <span>Goal target</span>
-                      <strong>
-                        {meta.goal} {meta.unit}
-                      </strong>
+                      <span>Target state</span>
+                      <strong>{meta.targetState}</strong>
                     </div>
                   </article>
                 );

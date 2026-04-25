@@ -82,17 +82,27 @@ const formatState = (state: MetricState) => levelLabel[state.level];
 
 const stateScore = (state: MetricState) => levelScore[state.level];
 
-const compareState = (a: MetricState, b: MetricState) => stateScore(a) - stateScore(b);
+const compareState = (a: MetricState, b: MetricState) =>
+  stateScore(a) - stateScore(b);
 
 const getTrend = (previous: MetricState, current: MetricState) => {
   const scoreDiff = stateScore(current) - stateScore(previous);
   if (scoreDiff > 0) {
-    return { text: `${formatState(previous)} -> ${formatState(current)}`, direction: "up" as const };
+    return {
+      text: `${formatState(previous)} -> ${formatState(current)}`,
+      direction: "up" as const,
+    };
   }
   if (scoreDiff < 0) {
-    return { text: `${formatState(previous)} -> ${formatState(current)}`, direction: "down" as const };
+    return {
+      text: `${formatState(previous)} -> ${formatState(current)}`,
+      direction: "down" as const,
+    };
   }
-  return { text: `No change (${formatState(current)})`, direction: "flat" as const };
+  return {
+    text: `No change (${formatState(current)})`,
+    direction: "flat" as const,
+  };
 };
 
 const sortRows = (rows: Reading[], key: SortKey, direction: "asc" | "desc") => {
@@ -119,12 +129,14 @@ const toChartRow = (row: Reading) => ({
   copperScore: levelScore[row.copper.level],
 });
 
-const isMetricKey = (value: string): value is VitaminKey => metricTabs.includes(value as VitaminKey);
+const isMetricKey = (value: string): value is VitaminKey =>
+  metricTabs.includes(value as VitaminKey);
 
 export default function App() {
   const [section, setSection] = useState<Section>("overview");
   const [overviewMetric, setOverviewMetric] = useState<VitaminKey>("vitaminD");
-  const [rangeKey, setRangeKey] = useState<(typeof timeRanges)[number]["key"]>("6m");
+  const [rangeKey, setRangeKey] =
+    useState<(typeof timeRanges)[number]["key"]>("6m");
   const [selectedMetrics, setSelectedMetrics] = useState<VitaminKey[]>([
     ...metricTabs,
   ]);
@@ -157,7 +169,10 @@ export default function App() {
     [filteredRows, sortKey, sortDir],
   );
 
-  const historyChartRows = useMemo(() => sortedRows.slice().reverse().map(toChartRow), [sortedRows]);
+  const historyChartRows = useMemo(
+    () => sortedRows.slice().reverse().map(toChartRow),
+    [sortedRows],
+  );
 
   const recentRows = readings.slice(-6).reverse();
 
@@ -187,9 +202,6 @@ export default function App() {
         <header className="app-header">
           <div>
             <h1>VitaLines</h1>
-            <p className="subhead">
-              Dashboard focused on detectable categories: Low, Med, and High.
-            </p>
           </div>
           <nav className="nav-tabs">
             <button
@@ -225,7 +237,9 @@ export default function App() {
                   <div className="stat-card" key={key}>
                     <div className="stat-header">
                       <p>{meta.label}</p>
-                      <span className={`badge badge-${currentState.level}`}>{status}</span>
+                      <span className={`badge badge-${currentState.level}`}>
+                        {status}
+                      </span>
                     </div>
                     <div className="stat-value">
                       <span>{formatState(currentState)}</span>
@@ -257,8 +271,15 @@ export default function App() {
               <div className="chart-shell">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={overviewRows}>
-                    <CartesianGrid strokeDasharray="4 4" stroke="rgba(255,255,255,0.08)" />
-                    <XAxis dataKey="date" tickFormatter={formatMonth} tick={{ fill: "#dbe0ff" }} />
+                    <CartesianGrid
+                      strokeDasharray="4 4"
+                      stroke="rgba(255,255,255,0.08)"
+                    />
+                    <XAxis
+                      dataKey="date"
+                      tickFormatter={formatMonth}
+                      tick={{ fill: "#dbe0ff" }}
+                    />
                     <YAxis
                       tick={{ fill: "#dbe0ff" }}
                       domain={[0.8, 3.2]}
@@ -268,8 +289,12 @@ export default function App() {
                     <Tooltip
                       labelFormatter={formatLabel}
                       formatter={(value) => {
-                        const score = typeof value === "number" ? value : Number(value);
-                        return [scoreLabel[score] ?? "", overviewMetricMeta.label];
+                        const score =
+                          typeof value === "number" ? value : Number(value);
+                        return [
+                          scoreLabel[score] ?? "",
+                          overviewMetricMeta.label,
+                        ];
                       }}
                     />
                     <Line
@@ -282,8 +307,16 @@ export default function App() {
                     />
                     {showGuides && (
                       <>
-                        <ReferenceLine y={1.5} stroke="rgba(255,255,255,0.22)" strokeDasharray="4 6" />
-                        <ReferenceLine y={2.5} stroke="rgba(255,255,255,0.22)" strokeDasharray="4 6" />
+                        <ReferenceLine
+                          y={1.5}
+                          stroke="rgba(255,255,255,0.22)"
+                          strokeDasharray="4 6"
+                        />
+                        <ReferenceLine
+                          y={2.5}
+                          stroke="rgba(255,255,255,0.22)"
+                          strokeDasharray="4 6"
+                        />
                       </>
                     )}
                   </LineChart>
@@ -316,7 +349,9 @@ export default function App() {
                         <td>{formatDate(row.date)}</td>
                         {metricTabs.map((metric) => (
                           <td key={metric}>
-                            <span className={`status-pill status-${row[metric].level}`}>
+                            <span
+                              className={`status-pill status-${row[metric].level}`}
+                            >
                               {formatState(row[metric])}
                             </span>
                           </td>
@@ -390,8 +425,15 @@ export default function App() {
                 <div className="chart-shell chart-shell-lg">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={historyChartRows}>
-                      <CartesianGrid strokeDasharray="4 4" stroke="rgba(255,255,255,0.08)" />
-                      <XAxis dataKey="date" tickFormatter={formatMonth} tick={{ fill: "#dbe0ff" }} />
+                      <CartesianGrid
+                        strokeDasharray="4 4"
+                        stroke="rgba(255,255,255,0.08)"
+                      />
+                      <XAxis
+                        dataKey="date"
+                        tickFormatter={formatMonth}
+                        tick={{ fill: "#dbe0ff" }}
+                      />
                       <YAxis
                         tick={{ fill: "#dbe0ff" }}
                         domain={[0.8, 3.2]}
@@ -401,11 +443,15 @@ export default function App() {
                       <Tooltip
                         labelFormatter={formatLabel}
                         formatter={(value, name, item) => {
-                          const score = typeof value === "number" ? value : Number(value);
+                          const score =
+                            typeof value === "number" ? value : Number(value);
                           const dataKey = `${item?.dataKey ?? ""}`;
                           const metric = dataKey.replace("Score", "");
                           if (isMetricKey(metric)) {
-                            return [scoreLabel[score] ?? "", vitaminMeta[metric].label];
+                            return [
+                              scoreLabel[score] ?? "",
+                              vitaminMeta[metric].label,
+                            ];
                           }
                           return [scoreLabel[score] ?? "", `${name}`];
                         }}
@@ -426,8 +472,16 @@ export default function App() {
                         ))}
                       {showGuides && (
                         <>
-                          <ReferenceLine y={1.5} stroke="rgba(255,255,255,0.28)" strokeDasharray="4 6" />
-                          <ReferenceLine y={2.5} stroke="rgba(255,255,255,0.28)" strokeDasharray="4 6" />
+                          <ReferenceLine
+                            y={1.5}
+                            stroke="rgba(255,255,255,0.28)"
+                            strokeDasharray="4 6"
+                          />
+                          <ReferenceLine
+                            y={2.5}
+                            stroke="rgba(255,255,255,0.28)"
+                            strokeDasharray="4 6"
+                          />
                         </>
                       )}
                     </LineChart>
@@ -448,16 +502,30 @@ export default function App() {
                     <thead>
                       <tr>
                         <th onClick={() => handleSort("date")}>
-                          Date {sortKey === "date" ? (sortDir === "asc" ? "^" : "v") : ""}
+                          Date{" "}
+                          {sortKey === "date"
+                            ? sortDir === "asc"
+                              ? "^"
+                              : "v"
+                            : ""}
                         </th>
                         {metricTabs.map((metric) => (
                           <th key={metric} onClick={() => handleSort(metric)}>
                             {vitaminMeta[metric].label}{" "}
-                            {sortKey === metric ? (sortDir === "asc" ? "^" : "v") : ""}
+                            {sortKey === metric
+                              ? sortDir === "asc"
+                                ? "^"
+                                : "v"
+                              : ""}
                           </th>
                         ))}
                         <th onClick={() => handleSort("notes")}>
-                          Notes {sortKey === "notes" ? (sortDir === "asc" ? "^" : "v") : ""}
+                          Notes{" "}
+                          {sortKey === "notes"
+                            ? sortDir === "asc"
+                              ? "^"
+                              : "v"
+                            : ""}
                         </th>
                       </tr>
                     </thead>
@@ -467,7 +535,9 @@ export default function App() {
                           <td>{formatDate(row.date)}</td>
                           {metricTabs.map((metric) => (
                             <td key={metric}>
-                              <span className={`status-pill status-${row[metric].level}`}>
+                              <span
+                                className={`status-pill status-${row[metric].level}`}
+                              >
                                 {formatState(row[metric])}
                               </span>
                             </td>

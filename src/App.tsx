@@ -186,7 +186,7 @@ export default function App() {
       <div className="app">
         <header className="app-header">
           <div>
-            <h1>Vitamin State Dashboard</h1>
+            <h1>VitaLines</h1>
             <p className="subhead">
               Dashboard focused on detectable categories: Low, Med, and High.
             </p>

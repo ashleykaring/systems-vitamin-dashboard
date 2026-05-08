@@ -38,8 +38,7 @@ export const vitaminMeta: Record<
   calcium: {
     label: "Calcium",
     targetState: "Med",
-    description:
-      "Calcium is critical for bones, teeth, and muscle function. This view focuses on categorical status movement over time rather than numeric lab values.",
+    description: "Calcium is critical for bones, teeth, and muscle function.",
     tips: [
       "Prioritize calcium-rich foods like yogurt, tofu, and leafy greens.",
       "Spread intake through the day for better absorption.",
@@ -50,7 +49,7 @@ export const vitaminMeta: Record<
     label: "Vitamin C",
     targetState: "Med",
     description:
-      "Vitamin C supports immune defense, collagen production, and antioxidant balance. Status tracking highlights category transitions and consistency.",
+      "Vitamin C supports immune defense, collagen production, and antioxidant balance.",
     tips: [
       "Include citrus, berries, peppers, and broccoli regularly.",
       "Favor fresh or lightly cooked produce to preserve content.",
@@ -61,10 +60,10 @@ export const vitaminMeta: Record<
     label: "Copper",
     targetState: "Med",
     description:
-      "Copper supports iron metabolism, connective tissue formation, and nervous system function. Category tracking shows whether status is Low, Med, or High over time.",
+      "Copper supports iron metabolism, connective tissue formation, and nervous system function.",
     tips: [
       "Include shellfish, nuts, seeds, and legumes regularly.",
-      "Avoid excessive zinc-only supplementation without guidance.",
+      "High zinc intake can interfere with copper absorption.",
       "Use balanced multinutrient routines when intake is inconsistent.",
     ],
   },
